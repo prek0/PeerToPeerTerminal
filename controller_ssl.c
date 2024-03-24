@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
     char bufferOut[1024] = { 0 };
 
     // Check for correct number of command line arguments
-	// To make sure ip address of server and client id was provided
+    // To make sure ip address of server and client id was provided
     if (argc < 3){
         fprintf (stderr, "Invalid arguments\nusage: SockClient <ip addr> <identifier>\n");
         exit(1);
