@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
         max_sd = master_socket;
 
         // Add child sockets to set
-		// To get highest file descriptor number (needed for the select function)
+        // To get highest file descriptor number (needed for the select function)
         for (i = 0; i < MAX; i++) {
             sd = list[i].remote_fd;
             if (sd > 0) {
@@ -176,53 +176,53 @@ int main(int argc, char *argv[]) {
         // If something happened on the master socket, it's an incoming connection
         if (FD_ISSET(master_socket, &readfds)) {
 
-			// Accept a new incoming connection on the master socket
+            // Accept a new incoming connection on the master socket
             if ((new_socket = accept(master_socket, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
                 perror("accept error");
             }
 
-			// Create a new SSL structure for the SSL connection
+            // Create a new SSL structure for the SSL connection
             SSL *ssl = SSL_new(ssl_ctx);
             if (!ssl) {
                 printf("could not SSL_new\n");
                 return 1;
             }
-			// Associate the SSL structure with the socket file descriptor
+            // Associate the SSL structure with the socket file descriptor
             if (!SSL_set_fd(ssl, new_socket)) {
                 close(new_socket);
                 printf("could not SSL_set_fd\n");
                 return 1;
             }
-			// Set the SSL connection state to accept incoming connections
+            // Set the SSL connection state to accept incoming connections
             SSL_set_accept_state(ssl);
 
             do {
                 valread = SSL_read(ssl, buffer, sizeof(buffer) - 1);
                 buffer[valread] = '\0';
-				
-				// When tag indicates a "remote" connection request
+                
+                // When tag indicates a "remote" connection request
                 if (strncmp(buffer, "remote", 6) == 0) {
                     
-					char *res = strchr(buffer, ':');
-					
-					// If the identifier is not provided, handle error
+                    char *res = strchr(buffer, ':');
+                    
+                    // If the identifier is not provided, handle error
                     if (res == NULL) {
                         perror("id not given");
                         close(new_socket);
                         SSL_free(ssl);
                         break;
                     } 
-					
-					// If the identifier already exists in the list, handle error
-					else if (search(list, res + 1) >= 0) {
+                    
+                    // If the identifier already exists in the list, handle error
+                    else if (search(list, res + 1) >= 0) {
                         perror("remote id already exists");
                         close(new_socket);
                         SSL_free(ssl);
                         break;
                     } 
-					
-					// If the identifier is valid and not already in use, add the remote client
-					else {
+                    
+                    // If the identifier is valid and not already in use, add the remote client
+                    else {
                         index = search_free(list);
                         strncpy(list[index].id, res + 1, 32);
                         list[index].remote_fd = new_socket;
@@ -230,20 +230,20 @@ int main(int argc, char *argv[]) {
                         printf("remote client added\n");
                     }
                 } 
-				// When tag indicates a "controller" connection request
-				else if (strncmp(buffer, "controller", 10) == 0) {
+                // When tag indicates a "controller" connection request
+                else if (strncmp(buffer, "controller", 10) == 0) {
                    
-				    char *res = strchr(buffer, ':');
-					
-					// If the identifier is not provided, handle error
+                    char *res = strchr(buffer, ':');
+                    
+                    // If the identifier is not provided, handle error
                     if (res == NULL) {
                         perror("id not given");
                         close(new_socket);
                         SSL_free(ssl);
                         break;
                     }
-					
-					// If the provided remote identifier is not found in the list, handle error
+                    
+                    // If the provided remote identifier is not found in the list, handle error
                     i = search(list, res + 1);
                     if (i < 0) {
                         perror("remote id not found");
@@ -251,22 +251,22 @@ int main(int argc, char *argv[]) {
                         SSL_free(ssl);
                         break;
                     }
-					
-					// If the identifier is valid, add the controller client
+                    
+                    // If the identifier is valid, add the controller client
                     list[i].controller_fd = new_socket;
                     list[i].controller_ssl = ssl;
                     printf("controller client added\n");
                 } 
-				// When provided tag does not match expected tags, handle error
-				else {
+                // When provided tag does not match expected tags, handle error
+                else {
                     printf("%s\n", buffer);
                     perror("wrong tag");
                     close(new_socket);
                     SSL_free(ssl);
                     break;
                 }
-				
-				// Print information about the new SSL connection
+                
+                // Print information about the new SSL connection
                 printf("New SSL connection, socket fd is %d , ip is : %s , port : %d \n",
                        new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
@@ -291,30 +291,30 @@ int main(int argc, char *argv[]) {
                     }
                 }
 
-				// Check if the socket is ready for reading
+                // Check if the socket is ready for reading
                 if (FD_ISSET(sd, &readfds)) {
                     valread = SSL_read(selected_ssl, buffer, sizeof(buffer) - 1);
                     buffer[valread] = '\0';
                     
-					if (valread == 0) {
+                    if (valread == 0) {
                         // Some client disconnected, get their details and print
-						j = search_fd(list, sd);
-						
-						// Disconnect the remote client.Close the socket and free associated SSL resources and print the details
+                        j = search_fd(list, sd);
+                        
+                        // Disconnect the remote client.Close the socket and free associated SSL resources and print the details
                         getpeername(list[j].remote_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
                         printf("Remote disconnected %d, ip %s , port %d \n",
                                list[j].remote_fd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));      
-						close(list[j].remote_fd);
+                        close(list[j].remote_fd);
                         SSL_free(list[j].remote_ssl);
-						
-						// Disconnect the corresponding controller client.Close the socket and free associated SSL resources and print the details
+                        
+                        // Disconnect the corresponding controller client.Close the socket and free associated SSL resources and print the details
                         getpeername(list[j].controller_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
                         printf("Controller disconnected %d, ip %s , port %d \n",
                                list[j].controller_fd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
-						close(list[j].controller_fd);
+                        close(list[j].controller_fd);
                         SSL_free(list[j].controller_ssl);
 
-						// Reset client connection information
+                        // Reset client connection information
                         list[j].remote_fd = 0;
                         list[j].controller_fd = 0;
                         list[j].id[0] = '\0';
@@ -324,14 +324,14 @@ int main(int argc, char *argv[]) {
                         // Echo back the message that came in
                         j = search_fd(list, sd);
                         if (list[j].controller_fd != 0) {
-							
-							// If the message is from the remote client, send it to the controller client
+                            
+                            // If the message is from the remote client, send it to the controller client
                             if (list[j].remote_fd == sd) {
                                 v = SSL_write(list[j].controller_ssl, buffer, strlen(buffer));
                             } 
-							
-							// If the message is from the controller client, send it to the remote client
-							else if (list[j].controller_fd == sd) {
+                            
+                            // If the message is from the controller client, send it to the remote client
+                            else if (list[j].controller_fd == sd) {
                                 v = SSL_write(list[j].remote_ssl, buffer, strlen(buffer));
                             }
                         }
