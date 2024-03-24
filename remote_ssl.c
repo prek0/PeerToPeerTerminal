@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in serv_addr;
    
     // Check command line arguments
-	// To make sure ip address of server and client id was provided
+    // To make sure ip address of server and client id was provided
     if (argc < 3){
         fprintf (stderr, "Invalid arguments\nusage: RemoteClient <ip addr> <identifier>\n");
         exit(1);
@@ -84,23 +84,23 @@ int main(int argc, char *argv[]) {
 
     if (pid1 == 0){
         // Child process
-		
+        
         // Redirect standard input to read from pipeIn
         dup2(pipeIn[0], 0);
-		// Close write end of pipeIn
+        // Close write end of pipeIn
         close(pipeIn[1]);
        
-	    // Redirect standard output and standard error to write to pipeOut
+        // Redirect standard output and standard error to write to pipeOut
         dup2(pipeOut[1], 1);
         dup2(pipeOut[1], 2);
-		// Close read end of pipeOut
+        // Close read end of pipeOut
         close(pipeOut[0]);
 
         // Execute bash shell
         execvp("bash", bash);
     }else{
         // Parent process
-		
+        
         // Close unnecessary pipe ends
         close(pipeOut[1]);
         close(pipeIn[0]);
